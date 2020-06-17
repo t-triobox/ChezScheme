@@ -1997,3 +1997,17 @@
 - fixed csug copyright year substititions and changed revisiondate
   to not be generated, making the csug build reproducible
     newrelease csug/csug.stex
+- fixed Windows build using MSYS2
+    c/Mf-a6nt, c/Mf-i3nt, c/Mf-ta6nt, c/Mf-ti3nt, mats/Mf-a6nt,
+    mats/Mf-i3nt, mats/Mf-ta6nt, mats/Mf-ti3nt 
+- fixed build on Linux with musl libc
+    expeditor.c
+- extended primitive folding to primitives that return multiple
+  values.
+    cp0.ss, primdata.ss,
+    cp0.ms
+- fix handling of calling code's address for locking around a callable
+  that has a u8*, u16*, or u32* argument, which could cause the
+  cp register copy in the thread context to be changed before
+  S_call_help gets it
+    cpnanopass.ss, schlib.c, foreign2.c, foreign.ms
