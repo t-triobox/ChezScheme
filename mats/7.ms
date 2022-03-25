@@ -482,7 +482,7 @@
     (separate-eval '(load-program "testfile-mc-foo.so"))
     "(\"a\" \"b\" \"c\")\n")
   (touch "testfile-mc-foo.so" "testfile-mc-a.ss")
-  ((lambda (x ls) (and (member x ls) #t))
+  (equal?
     (let ([mt* (map file-modification-time (list "testfile-mc-a.so" "testfile-mc-b.so" "testfile-mc-foo.so"))])
       (let ([s (separate-compile '(lambda (x) (parameterize ([compile-program-handler (lambda (ifn ofn) (printf "yippee!\n") (compile-program ifn ofn))]
                                                              [compile-imported-libraries #t]
@@ -495,8 +495,7 @@
             (map file-modification-time (list "testfile-mc-a.so" "testfile-mc-b.so" "testfile-mc-foo.so"))
             mt*)
           s)))
-    '(((> > >) . "yippee!\n((testfile-mc-a) (testfile-mc-b))\n")
-      ((> > >) . "yippee!\n((testfile-mc-b) (testfile-mc-a))\n")))
+    '((> > >) . "yippee!\n"))
   (equal?
     (let ([mt* (map file-modification-time (list "testfile-mc-a.so" "testfile-mc-b.so" "testfile-mc-foo.so"))])
       (let ([s (separate-compile '(lambda (x) (parameterize ([compile-imported-libraries #t] [compile-file-message #f]) (maybe-compile-program x))) 'mc-foo)])
@@ -506,7 +505,7 @@
             (map file-modification-time (list "testfile-mc-a.so" "testfile-mc-b.so" "testfile-mc-foo.so"))
             mt*)
           s)))
-    '((= = =) . "#f\n"))
+    '((= = =) . ""))
   (equal?
     (separate-eval '(load-program "testfile-mc-foo.so"))
     "(\"a\" \"b\" \"c\")\n")
@@ -1116,12 +1115,12 @@
     "(aye captain)\n")
   (equal?
     (begin
-      (unless (or (embedded?) (equal? *scheme* (format "../bin/~a/scheme~a" (machine-type) (if (windows?) ".exe" ""))))
+      (unless (or (embedded?) (equal? *scheme* (format "~a/bin/~a/scheme~a" (path-parent *mats-dir*) (machine-type) (if (windows?) ".exe" ""))))
         (errorf #f "not testing boot file based on ../boot/~a/petite.boot, since *scheme* isn't ../bin/~a/scheme~a"
           (machine-type) (machine-type) (if (windows?) ".exe" "")))
       (parameterize ([optimize-level 2])
         (make-boot-file "testfile.boot" '()
-          (format "../boot/~a/petite.boot" (machine-type))
+          (format "~a/boot/~a/petite.boot" (path-parent *mats-dir*) (machine-type))
           "testfile-1.so"
           "testfile-2.so"
           "testfile-3.ss"
@@ -1145,7 +1144,7 @@
   ; by the static-generation collection.
   (equal?
     (begin
-      (unless (or (embedded?) (equal? *scheme* (format "../bin/~a/scheme~a" (machine-type) (if (windows?) ".exe" ""))))
+      (unless (or (embedded?) (equal? *scheme* (format "~a/bin/~a/scheme~a" (path-parent *mats-dir*) (machine-type) (if (windows?) ".exe" ""))))
         (errorf #f "not testing boot file based on ../boot/~a/petite.boot, since *scheme* isn't ../bin/~a/scheme~a"
           (machine-type) (machine-type) (if (windows?) ".exe" "")))
       (mkfile "testfile.ss"
@@ -5598,6 +5597,75 @@ evaluating module init
         (collect (collect-maximum-generation))
         (let ([b3 (bytes-allocated)])
           (and (> b2 b1) (< b3 b2))))))
+  (error? ; invalid generation
+    (collect 'static 1 'static))
+  (error? ; invalid generation
+    (collect 'static 1 'static))
+  (error? ; invalid generation
+    (parameterize ([collect-maximum-generation 4])
+      (collect 17 1 17)))
+  (error? ; invalid generation
+    (collect -1 1 'static))
+  (error? ; invalid maximum target generation
+    (parameterize ([collect-maximum-generation 4])
+      (collect 3 1 2)))
+  (error? ; invalid maximum target generation
+    (parameterize ([collect-maximum-generation 4])
+      (collect 3 1 'dynamic)))
+  (error? ; invalid minimum target generation
+    (parameterize ([collect-maximum-generation 4])
+      (collect 0 0 3)))
+  (error? ; invalid minimum target generation
+    (parameterize ([collect-maximum-generation 4])
+      (collect 0 'static 3)))
+  (error? ; invalid minimum target generation
+    (parameterize ([collect-maximum-generation 4])
+      (collect 0 2 1)))
+  (error? ; invalid minimum target generation
+    (parameterize ([collect-maximum-generation 4])
+      (collect 0 2 0)))
+  (error? ; invalid minimum target generation
+    (parameterize ([collect-maximum-generation 4])
+      (collect (collect-maximum-generation) 0 'static)))
+  (error? ; invalid minimum target generation
+    (parameterize ([collect-maximum-generation 4])
+      (collect (collect-maximum-generation) -1 'static)))
+  (parameterize ([collect-maximum-generation (max (collect-maximum-generation) 2)])
+    (with-interrupts-disabled
+      (collect (collect-maximum-generation))
+      (let ([b0-0 (bytes-allocated 0)]
+            [b1-0 (bytes-allocated 1)]
+            [bm-0 (bytes-allocated (collect-maximum-generation))])
+        (let* ([v (make-vector 2000)] [n (compute-size v)])
+          (let ([b0-1 (bytes-allocated 0)]
+                [b1-1 (bytes-allocated 1)]
+                [bm-1 (bytes-allocated (collect-maximum-generation))])
+            (unless (>= (- b0-1 b0-0) n) (errorf 'oops1 "b0-0 = ~s, b0-1 = ~s, b0-2 = ~s" b0-0 b0-1 b0-2))
+            (unless (< (- b1-1 b1-0) n) (errorf 'oops2 "b1-0 = ~s, b1-1 = ~s, b1-2 = ~s" b1-0 b1-1 b1-2))
+            (unless (< (- bm-1 bm-0) n) (errorf 'oops3 "bm-0 = ~s, bm-1 = ~s, bm-2 = ~s" bm-0 bm-1 bm-2))
+            (collect (collect-maximum-generation) 1 (collect-maximum-generation))
+            (let ([b0-2 (bytes-allocated 0)]
+                  [b1-2 (bytes-allocated 1)]
+                  [bm-2 (bytes-allocated (collect-maximum-generation))])
+              (unless (< (- b0-2 b0-0) n) (errorf 'oops4 "b0-0 = ~s, b0-1 = ~s, b0-2 = ~s" b0-0 b0-1 b0-2))
+              (unless (>= (- b1-2 b1-0) n) (errorf 'oops5 "b1-0 = ~s, b1-1 = ~s, b1-2 = ~s" b1-0 b1-1 b1-2))
+              (unless (< (- bm-2 bm-0) n) (errorf 'oops6 "bm-0 = ~s, bm-1 = ~s, bm-2 = ~s" bm-0 bm-1 bm-2))
+              (parameterize ([print-vector-length #t]) (pretty-print v))
+              #t))))))
+  (parameterize ([collect-maximum-generation 4]
+                 [collect-generation-radix 4]
+                 [collect-trip-bytes (expt 2 20)])
+    (collect (collect-maximum-generation))
+    (let ([b0 (maximum-memory-bytes)])
+      (define tail-spin
+        (lambda (n)
+          (do ([i 1 (fx+ i 1)] [next (cons 0 '()) (cdr next)])
+              ((fx= i n))
+            (set-cdr! next (cons i '())))))
+      (tail-spin 50000000)
+      (let ([b1 (maximum-memory-bytes)])
+        (or (< (- b1 b0) (expt 2 24))
+            (errorf #f "b0 = ~s, b1 = ~s, b1-b0 = ~s" b0 b1 (- b1 b0))))))
  )
 
 (mat object-counts
@@ -5624,7 +5692,7 @@ evaluating module init
       (assert (assp record-type-descriptor? hc))
       #t))
   ; a few idiot checks including verification of proper behavior when changing collect-maximum-generation
-  (parameterize ([enable-object-counts #t])
+  (parameterize ([enable-object-counts #t] [collect-maximum-generation (collect-maximum-generation)])
     (pair?
       (with-interrupts-disabled
         (let ([cmg (collect-maximum-generation)])

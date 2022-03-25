@@ -751,7 +751,14 @@
              ...
              [else (syntax-error const
                      (format "unhandled value ~s" (constant const)))])]))
-      (include "../s/machine.def")
+      (define-syntax include-from-s
+        (lambda (x)
+          (syntax-case x ()
+            [(k ?path)
+             (string? (datum ?path))
+             (let ([s-path (format "~a/../s/~a" *mats-dir* (datum ?path))])
+               (datum->syntax #'k `(include ,s-path)))])))
+      (include-from-s "machine.def")
      ; all this work for two constants:
       (define $fd-unaligned-integers (constant unaligned-integers))
       (define $fd-unaligned-floats (constant unaligned-floats)))
@@ -2831,6 +2838,39 @@
 )
 
 (mat record-writer
+  (equal?
+    (with-output-to-string
+      (lambda ()
+        (define-record-type sp (fields lat))
+        (record-writer (type-descriptor sp)
+          (lambda (x p w) (w (sp-lat x) p)))
+        (pretty-print (list (make-sp 'ugh)))))
+    "(ugh)\n")
+  (error? ; 'sp is not an rtd
+    (with-output-to-string
+      (lambda ()
+        (define-record-type sp (fields lat))
+        (record-writer 'sp
+          (lambda (x p w) (w (sp-lat x) p))))))
+  (error? ; "oops" is not a procedure
+    (with-output-to-string
+      (lambda ()
+        (define-record-type sp (fields lat))
+        (record-writer (type-descriptor sp) "oops"))))
+  (error? ; ugh is not a textual output port
+    (with-output-to-string
+      (lambda ()
+        (define-record-type sp (fields lat))
+        (record-writer (type-descriptor sp)
+          (lambda (x p w) (w p (sp-lat x))))
+        (pretty-print (list (make-sp 'ugh))))))
+  (error? ; procedure not a textual output port
+    (with-output-to-string
+      (lambda ()
+        (define-record-type sp (fields lat))
+        (record-writer (type-descriptor sp)
+          (lambda (x p w) (w (sp-lat x) w)))
+        (pretty-print (list (make-sp 'ugh))))))
   (begin
     (define-record $froz (a b) ([c (+ a b)]))
     (define-record $fruz $froz (d))

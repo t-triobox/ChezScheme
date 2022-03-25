@@ -1,12 +1,12 @@
 ;;; primdata.ss
 ;;; Copyright 1984-2017 Cisco Systems, Inc.
-;;; 
+;;;
 ;;; Licensed under the Apache License, Version 2.0 (the "License");
 ;;; you may not use this file except in compliance with the License.
 ;;; You may obtain a copy of the License at
-;;; 
+;;;
 ;;; http://www.apache.org/licenses/LICENSE-2.0
-;;; 
+;;;
 ;;; Unless required by applicable law or agreed to in writing, software
 ;;; distributed under the License is distributed on an "AS IS" BASIS,
 ;;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -799,7 +799,7 @@
   (free-identifier=? [sig [(identifier identifier) -> (boolean)]] [flags pure mifoldable discard cp03])
   (syntax->datum [sig [(ptr) -> (ptr)]] [flags pure unrestricted mifoldable discard])
   (datum->syntax [sig [(identifier ptr) -> (ptr)]] [flags pure mifoldable discard])
-  (generate-temporaries [sig [(list) -> (list)]] [flags alloc])
+  (generate-temporaries [sig [(ptr) -> (list)]] [flags alloc]) ; the argument can be a list, a syntax with a list or an annotation
   (syntax-violation [sig [(who string ptr) (who string ptr ptr) -> (bottom)]] [flags abort-op])
 )
 
@@ -1008,6 +1008,7 @@
   (scheme-start [sig [() -> (procedure)] [(procedure) -> (void)]] [flags])
   (scheme-program [sig [() -> (procedure)] [(procedure) -> (void)]] [flags])
   (scheme-script [sig [() -> (procedure)] [(procedure) -> (void)]] [flags])
+  (self-evaluating-vectors [sig [() -> (boolean)] [(ptr) -> (void)]] [flags unrestricted])
   (source-directories [sig [() -> (list)] [(sub-list) -> (void)]] [flags])
   (subset-mode [sig [() -> (maybe-symbol)] [(maybe-sub-symbol) -> (void)]] [flags])
   (suppress-greeting [sig [() -> (boolean)] [(ptr) -> (void)]] [flags unrestricted])
@@ -1205,7 +1206,7 @@
   (chmod [sig [(pathname sub-ufixnum) -> (void)]] [flags])
   (clear-input-port [sig [() (input-port) -> (void)]] [flags true])
   (clear-output-port [sig [() (output-port) -> (void)]] [flags true])
-  (collect [sig [() (sub-ufixnum) (sub-ufixnum ptr) -> (void)]] [flags true])
+  (collect [sig [() (sub-ufixnum) (sub-ufixnum ptr) (sub-ufixnum ptr ptr) -> (void)]] [flags true])
   (collect-rendezvous [sig [() -> (void)]] [flags])
   (collections [sig [() -> (uint)]] [flags unrestricted alloc])
   (compile [sig [(sub-ptr) (sub-ptr environment) -> (ptr ...)]] [flags])
@@ -1218,8 +1219,8 @@
   (compile-time-value-value [sig [(compile-time-value) -> (ptr)]] [flags pure mifoldable discard])
   (compile-to-file [sig [(list pathname) (list pathname maybe-sfd) -> (ptr)]] [flags true])
   (compile-to-port [sig [(list binary-output-port) (list binary-output-port maybe-sfd) (list binary-output-port maybe-sfd maybe-binary-output-port) (list binary-output-port maybe-sfd maybe-binary-output-port maybe-textual-output-port) (list binary-output-port maybe-sfd maybe-binary-output-port maybe-textual-output-port sub-symbol) (list binary-output-port maybe-sfd maybe-binary-output-port maybe-textual-output-port sub-symbol maybe-binary-output-port) -> (ptr)]] [flags true])
-  (compile-whole-program [sig [(string string) (string string ptr) -> (void)]] [flags])
-  (compile-whole-library [sig [(string string) -> (void)]] [flags])
+  (compile-whole-program [sig [(string string) (string string ptr) -> (list)]] [flags])
+  (compile-whole-library [sig [(string string) -> (list)]] [flags])
   (compute-composition [sig [(ptr) -> (list)] [(ptr sub-ufixnum) -> (list)]] [flags alloc])
   (compute-size [sig [(ptr) -> (uint)] [(ptr sub-ufixnum) -> (uint)]] [flags alloc])
   (concatenate-object-files [sig [(pathname pathname pathname ...) -> (void)]] [flags true])
@@ -2019,6 +2020,7 @@
   ($ftd-atomic-category [flags])
   ($ftd-compound? [flags])
   ($ftd-size [flags])
+  ($ftd-unsigned? [flags])
   ($ftd->members [flags])
   ($ftype-guardian-oops [flags])
   ($ftype-pointer? [flags])

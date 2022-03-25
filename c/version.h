@@ -211,9 +211,7 @@ struct timespec;
 #ifndef __MINGW32__
 # define _setjmp setjmp
 # define _longjmp longjmp
-#endif
-#ifndef __MINGW32__
-#define ftruncate _chsize_s
+# define ftruncate _chsize_s
 #endif
 #define LOCK_SH 1
 #define LOCK_EX 2
@@ -290,6 +288,12 @@ typedef int tputsputcchar;
 #if (machine_type == machine_type_i3osx || machine_type == machine_type_ti3osx || machine_type == machine_type_a6osx || machine_type == machine_type_ta6osx)
 #if (machine_type == machine_type_ti3osx || machine_type == machine_type_ta6osx)
 #define PTHREADS
+#endif
+#if (machine_type == machine_type_a6osx || machine_type == machine_type_ta6osx)
+#ifndef NO_ROSETTA_CHECK
+#define CHECK_FOR_ROSETTA
+extern int is_rosetta;
+#endif
 #endif
 #define MACOSX
 #define NOBLOCK O_NONBLOCK

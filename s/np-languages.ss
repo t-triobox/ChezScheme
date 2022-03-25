@@ -356,9 +356,7 @@
  ; introducing mvlet, and mvcall
   (define-language L4.5 (extends L4)
     (terminals
-      (+ (label (l))
-         (maybe-label (mdcl))
-         (immediate (imm))))
+      (+ (maybe-label (mdcl))))
     (entry CaseLambdaExpr)
     (Expr (e body)
       (- (call info e0 e1 ...))
@@ -369,6 +367,8 @@
  ; removes foreign, adds foreign-call, updates fcallable
   (define-language L4.75 (extends L4.5)
     (entry CaseLambdaExpr)
+    (terminals
+      (+ (label (l))))
     (Expr (e body)
       (- (foreign info e)
          (fcallable info e))
@@ -407,7 +407,8 @@
          (fixnum (interface)))
       (+ (var (x))
          (primitive (prim)) ; moved up one language to support closure instrumentation
-         (fixnum (interface offset))))
+         (fixnum (interface offset))
+         (immediate (imm))))
     (entry Program)
     (Program (prog)
       (+ (labels ([l* le*] ...) l)                     => (labels ([l* le*] ...) (l))))
@@ -520,6 +521,7 @@
   (declare-primitive store-with-update effect #f) ; ppc
   (declare-primitive unactivate-thread effect #f) ; threaded version only
   (declare-primitive vpush-multiple effect #f) ; arm
+  (declare-primitive vpop-multiple effect #f) ; arm
   (declare-primitive cas effect #f)
 
   (declare-primitive < pred #t)
@@ -774,9 +776,10 @@
       (- (mvset info (mdcl (maybe t0) t1 ...) (t* ...) ((x** ...) interface* l*) ...))
       (+ (do-rest fixed-args)
          (mvset info (mdcl (maybe t0) t1 ...) (t* ...) ((x** ...) ...) ebody)
-         ; mventry-point can appear only within an mvset ebody
+         ; mventry-point and mverror-point can appear only within an mvset ebody
          ; ideally, grammar would reflect this
-         (mventry-point (x* ...) l))))
+         (mventry-point (x* ...) l)
+         (mverror-point))))
 
   (define exact-integer?
     (lambda (x)

@@ -34,6 +34,10 @@
       (float-type-case
          [(ieee) -1023]))
 
+   (define-constant float-mantissa-bits
+      (float-type-case
+         [(ieee) 53]))
+
 )
 
 (let ()
@@ -661,6 +665,14 @@
                              (floatable? (imag-part x)))]
          [else #t])))
 
+(define fixnum-floatable-wlop?
+  ;; floatable without loss of precision
+  (lambda (x)
+    (if (<= (- (fixnum-width) 1) (constant float-mantissa-bits))
+        #t
+        (let ([hi (expt 2 (constant float-mantissa-bits))])
+          (fx<= (- hi) x hi)))))
+
 (define exact-inexact-compare?
    ; e is an exact number, i is a flonum
    ; Preserve transitivity by making i exact,
@@ -941,7 +953,9 @@
     (type-case x
       [(fixnum? bignum? ratnum?) #t]
       [(flonum?) (not (exceptional-flonum? x))]
-      [($inexactnum?) (fl= ($inexactnum-imag-part x) 0.0)]
+      [($inexactnum?)
+       (and (fl= ($inexactnum-imag-part x) 0.0)
+            (not (exceptional-flonum? ($inexactnum-real-part x))))]
       [else #f])))
 
 (set! real?
@@ -1910,13 +1924,17 @@
       [else (domain-error who y)])))
 
 (set-who! remainder
-  (let ([f (lambda (x y)
-             (let ([r (- x (* (quotient x y) y))])
-               ;;; filter out outrageous results
-               ;;; try (remainder 1e194 10.0) without this hack...
-               (if (if (negative? y) (> r y) (< r y))
-                   r
-                   0.0)))])
+  (let* ([fmod (cflop2 "(cs)mod")]
+         [f (lambda (x y)
+              (cond
+                [(eqv? x 0) 0]
+                [else
+                 (let ([r (fmod (real->flonum x) (real->flonum y))])
+                   (if (fl= r 0.0)
+                       ;; Always return positive 0.0 --- not sure why,
+                       ;; but Racket and other Schemes seem to agree
+                       0.0
+                       r))]))])
     (lambda (x y)
       (type-case y
         [(fixnum?)
@@ -1998,7 +2016,7 @@
           (type-case y
              [(fixnum?) (fx= x y)]
              [(bignum? ratnum? $exactnum?) #f]
-             [(cflonum?) (cfl= (fixnum->flonum x) y)]
+             [(cflonum?) (if (fixnum-floatable-wlop? x) (cfl= (fixnum->flonum x) y) (exact-inexact-compare? = x y))]
              [else (nonnumber-error who y)])]
          [(bignum?)
           (type-case y
@@ -2023,7 +2041,7 @@
          [(flonum?)
           (type-case y
              [(cflonum?) (cfl= x y)]
-             [(fixnum?) (fl= x (fixnum->flonum y))]
+             [(fixnum?) (if (fixnum-floatable-wlop? y) (fl= x (fixnum->flonum y)) (exact-inexact-compare? = y x))]
              [(bignum? ratnum?) (exact-inexact-compare? = y x)]
              [($exactnum?) #f]
              [else (nonnumber-error who y)])]
@@ -2037,7 +2055,7 @@
              [(fixnum?) (fx< x y)]
              [(bignum?) ($bigpositive? y)]
              [(ratnum?) (< (* ($ratio-denominator y) x) ($ratio-numerator y))]
-             [(flonum?) (< (fixnum->flonum x) y)]
+             [(flonum?) (if (fixnum-floatable-wlop? x) (< (fixnum->flonum x) y) (exact-inexact-compare? < x y))]
              [else (nonreal-error who y)])]
          [(bignum?)
           (type-case y
@@ -2058,7 +2076,7 @@
          [(flonum?)
           (type-case y
              [(flonum?) (fl< x y)]
-             [(fixnum?) (fl< x (fixnum->flonum y))]
+             [(fixnum?) (if (fixnum-floatable-wlop? y) (fl< x (fixnum->flonum y)) (exact-inexact-compare? > y x))]
              [(bignum? ratnum?) (exact-inexact-compare? > y x)]
              [else (nonreal-error who y)])]
          [else (nonreal-error who x)])))
@@ -2072,7 +2090,7 @@
              [(bignum?) ($bigpositive? y)]
              [(ratnum?)
               (<= (* ($ratio-denominator y) x) ($ratio-numerator y))]
-             [(flonum?) (<= (fixnum->flonum x) y)]
+             [(flonum?) (if (fixnum-floatable-wlop? x) (<= (fixnum->flonum x) y) (exact-inexact-compare? <= x y))]
              [else (nonreal-error who y)])]
          [(bignum?)
           (type-case y
@@ -2094,7 +2112,7 @@
          [(flonum?)
           (type-case y
              [(flonum?) (fl<= x y)]
-             [(fixnum?) (fl<= x (fixnum->flonum y))]
+             [(fixnum?) (if (fixnum-floatable-wlop? y) (fl<= x (fixnum->flonum y)) (exact-inexact-compare? >= y x))]
              [(bignum? ratnum?) (exact-inexact-compare? >= y x)]
              [else (nonreal-error who y)])]
          [else (nonreal-error who x)])))

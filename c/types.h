@@ -80,9 +80,9 @@ typedef int IFASLCODE;      /* fasl type codes */
  * no space is left in the current segment.  n is assumed to be
  * an integral multiple of the object alignment. */
 #define find_room(s, g, t, n, x) {\
-    ptr X = S_G.next_loc[s][g];\
-    S_G.next_loc[s][g] = (ptr)((uptr)X + (n));\
-    if ((S_G.bytes_left[s][g] -= (n)) < 0) X = S_find_more_room(s, g, n, X);\
+    ptr X = S_G.next_loc[g][s];\
+    S_G.next_loc[g][s] = (ptr)((uptr)X + (n));\
+    if ((S_G.bytes_left[g][s] -= (n)) < 0) X = S_find_more_room(s, g, n, X);\
     (x) = TYPE(X, t);\
 }
 
@@ -349,11 +349,17 @@ typedef struct {
 # define SETJMP(jb) (JMPBUF_RET(jb) = 0, __builtin_setjmp(jb), JMPBUF_RET(jb))
 # define LONGJMP(jb,n) (JMPBUF_RET(jb) = n, __builtin_longjmp(jb, 1))
 #else
+# ifdef _WIN64
+#  define CREATEJMPBUF() malloc(256)
+#  define SETJMP(jb) S_setjmp(jb)
+#  define LONGJMP(jb,n) S_longjmp(jb, n)
+# else
 /* assuming malloc will give us required alignment */
-# define CREATEJMPBUF() malloc(sizeof(jmp_buf))
+#  define CREATEJMPBUF() malloc(sizeof(jmp_buf))
+#  define SETJMP(jb) _setjmp(jb)
+#  define LONGJMP(jb,n) _longjmp(jb, n)
+# endif
 # define FREEJMPBUF(jb) free(jb)
-# define SETJMP(jb) _setjmp(jb)
-# define LONGJMP(jb,n) _longjmp(jb, n)
 #endif
 
 #define DOUNDERFLOW\
