@@ -1911,31 +1911,15 @@
     #t)
 
   (when-threaded
-    ; copied from thread.ms
-    (begin
-      (define $threads (foreign-procedure "(cs)threads" () scheme-object))
-      (define $nthreads 1)
-      (define $yield
-        (let ([t (make-time 'time-duration 1000 0)])
-          (lambda () (sleep t))))
-      (define $thread-check
-        (lambda ()
-          (let loop ([n 10] [nt (length ($threads))])
-            (cond
-              [(<= nt $nthreads)
-               (set! $nthreads nt)
-               (collect)]
-              [else
-                ($yield)
-                (let* ([ls ($threads)] [nnt (length ls)])
-                  (cond
-                    [(< nnt nt) (loop n nnt)]
-                    [(= n 0)
-                     (set! $nthreads nnt)
-                     (errorf #f "extra threads running ~s" ls)]
-                    [else (loop (- n 1) nnt)]))]))
-          #t))
-      ($thread-check)))
+    (let-syntax ([mats-dir-relative
+                  (lambda (x)
+                    (syntax-case x ()
+                      [(_ (include ?path))
+                       (string? (datum ?path))
+                       #`(include #,(format "~a/~a" *mats-dir* (datum ?path)))]))])
+      (mats-dir-relative
+        (include "../../mats/thread-check.ss")))
+    ($thread-check))
 
   (when-threaded
     ((lambda (x)
@@ -2300,7 +2284,7 @@
       (cost-center-allocation-count cc)))
 
   (let ([x (fx+ 3 (random 10))])
-    ((lambda (count) ; range for padding on 32-bit and to accomadate 64-bit words
+    ((lambda (count) ; range for padding on 32-bit and to accommodate 64-bit words
        (<= (fxsll (fx+ x 1) 2) count (fxsll (fx+ x 2) 3)))
      (let ([cc (make-cost-center)])
        (with-cost-center cc

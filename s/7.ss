@@ -705,7 +705,7 @@
 
 (define $scheme-greeting
   (lambda ()
-    (format "~a\nCopyright 1984-2021 Cisco Systems, Inc.\n"
+    (format "~a\nCopyright 1984-2022 Cisco Systems, Inc.\n"
       (scheme-version))))
 
 (define $session-key #f)
@@ -1133,7 +1133,7 @@
                       (waiter))]
                    [(and (integer? x) (nonnegative? x))
                     (fprintf (console-output-port)
-                       "No saved error continution for thread ~s.~%"
+                       "No saved error continuation for thread ~s.~%"
                        x)
                     (flush-output-port (console-output-port))
                     (waiter)]

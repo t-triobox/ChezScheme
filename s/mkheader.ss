@@ -61,7 +61,7 @@
       [(name args rhs) (pr "#define ~a~a ~a~%" name args rhs)]))
   (define export
     (lambda (tresult name targs)
-      (pr "EXPORT ~a ~a PROTO(~a);~%" tresult name targs)))
+      (pr "EXPORT ~a ~a~a;~%" tresult name targs)))
   (define &ref
     (lambda (cast x disp)
       (format "(~a((uptr)(~a)~:[+~;-~]~d))" cast x (fx< disp 0) (abs disp))))
@@ -175,9 +175,6 @@
         (nl)
         (comment "Warning: Some macros may evaluate arguments more than once.")
        
-        (nl) (comment "Enable function prototypes by default.")
-        (pr "#ifndef PROTO~%#define PROTO(x) x~%#endif~%")
-  
         (nl) (comment "Specify declaration of exports.")
         (pr "#ifdef _WIN32~%")
         (pr "#  if __cplusplus~%")
@@ -362,7 +359,7 @@
         (export "ptr" "Scall" "(ptr, iptr)")
         (comment "Warning: Sforeign_callable_entry_point(x) returns a pointer into x.")
         (def "Sforeign_callable_entry_point(x)"
-             (&ref "(void (*) PROTO((void)))" "x" ($ code-data-disp)))
+             (&ref "(void (*)(void))" "x" ($ code-data-disp)))
         (def "Sforeign_callable_code_object(x)"
              (&ref "(ptr)" "x" (- ($ code-data-disp))))
   
@@ -577,7 +574,7 @@
             (pr "                        \"lwz %%r0, 0(%0)\\n\\t\"\\~%")       ;  try a non-reserved load to see if we are likely to succeed
             (pr "                        \"cmpwi %%r0, 0\\n\\t\"\\~%")         ;  if it is = 0, try to acquire at start
             (pr "                        \"beq 0b\\n\\t\"\\~%")                ;
-            (pr "                        \"b 1b\\n\\t\"\\~%")                  ;  othwerise loop through the try again
+            (pr "                        \"b 1b\\n\\t\"\\~%")                  ;  otherwise loop through the try again
             (pr "                        \"2:\\n\\t\"\\~%")                    ; done:
             (pr "                        :                \\~%")
             (pr "                        : \"b\" (addr)\\~%")
